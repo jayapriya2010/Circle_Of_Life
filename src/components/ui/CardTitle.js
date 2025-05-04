@@ -1,9 +1,15 @@
 // src/components/ui/CardTitle.js
 import React from 'react';
 
-const CardTitle = ({ children, className = '', ...props }) => {
+const CardTitle = ({ children, className = '', size = 'medium', ...props }) => {
+  const sizeStyles = {
+    small: 'text-base font-medium',
+    medium: 'text-lg font-semibold',
+    large: 'text-xl font-bold'
+  };
+
   return (
-    <h2 className={`text-lg font-semibold text-gray-800 ${className}`} {...props}>
+    <h2 className={`text-gray-800 tracking-tight ${sizeStyles[size]} ${className}`} {...props}>
       {children}
     </h2>
   );
