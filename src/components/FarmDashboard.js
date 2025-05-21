@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
-import { MapPin, User, Thermometer, Droplet, Activity, ArrowLeft, Clock, Phone, Award, Leaf, Zap, Filter, CloudRain, Search, RefreshCw, ChevronDown, Bell, Settings, Calendar, BarChart2, PieChart, TrendingUp, Grid, List, Download, Eye, Plus, Menu } from 'lucide-react';
+import { MapPin, User, Thermometer, Droplet, Activity, ArrowLeft, Clock, Phone, Award, Leaf, Zap, Filter, CloudRain, Search, RefreshCw, ChevronDown, Bell, Settings, Calendar, BarChart2, PieChart, TrendingUp, LogOut } from 'lucide-react';
 import Card from './ui/Card';
 import CardHeader from './ui/CardHeader';
 import CardContent from './ui/CardContent';
 import CardTitle from './ui/CardTitle';
 import CardFooter from './ui/CardFooter';
+import ChatBot from './ChatBot';
 import farm2Image from '../images/farm2.png';
 import farm1Image from '../images/farm1.png'
 import farm3Image from '../images/farm3.png'
@@ -101,7 +102,7 @@ const farmData = [
   }
 ];
 
-const FarmDashboard = () => {
+const FarmDashboard = ({ user, onLogout }) => {
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [sensorData, setSensorData] = useState({
     tempC: 0,
@@ -117,7 +118,18 @@ const FarmDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [selectedTimeRange, setSelectedTimeRange] = useState("24h");
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Filter farms based on user role
+  const filteredFarmData = React.useMemo(() => {
+    if (!user) return farmData;
+    
+    // If user is a farmer, only show the farm they are assigned to
+    if (user.role === 'farmer' && user.farmId) {
+      return farmData.filter(farm => farm.id.toString() === user.farmId.toString());
+    }
+    // If user is an owner or admin, show all farms
+    return farmData;
+  }, [user]);
 
   // WebSocket and data handling logic
   useEffect(() => {
@@ -196,7 +208,7 @@ const FarmDashboard = () => {
     }, 1000);
   };
 
-  const filteredFarms = farmData.filter(farm => {
+  const filteredFarms = filteredFarmData.filter(farm => {
     // Apply filters
     if (activeFilter !== "all" && farm.status !== activeFilter) {
       return false;
@@ -231,6 +243,12 @@ const FarmDashboard = () => {
     }
   };
 
+  const handleLogoutClick = () => {
+    if (typeof onLogout === 'function') {
+      onLogout();
+    }
+  };
+
   const FarmList = () => (
     <div className="space-y-6">
       {/* Dashboard header with stats */}
@@ -238,8 +256,12 @@ const FarmDashboard = () => {
         <Card variant="glass" className="col-span-full md:col-span-2 bg-gradient-to-r from-emerald-500/90 to-green-600/90 text-white">
           <CardContent padding="normal" className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight mb-1">Welcome to AquaGrow</h2>
-              <p className="text-emerald-50/90">Managing {farmData.length} aquaponics systems</p>
+              <h2 className="text-2xl font-bold tracking-tight mb-1">Welcome {user?.fullName || 'to AquaGrow'}</h2>
+              <p className="text-emerald-50/90">
+                {user?.role === 'farmer' ? 'Managing your farm system' : 
+                 user?.role === 'owner' ? `Overseeing ${filteredFarmData.length} farm systems` :
+                 'Managing aquaponics systems'}
+              </p>
             </div>
             <div className="flex space-x-2">
               <button className="p-2 rounded-full hover:bg-white/10 transition-colors">
@@ -254,8 +276,8 @@ const FarmDashboard = () => {
         
         <StatCard 
           title="Active Farms" 
-          value={farmData.filter(f => f.status === 'active').length} 
-          total={farmData.length}
+          value={filteredFarmData.filter(f => f.status === 'active').length} 
+          total={filteredFarmData.length}
           icon={<Leaf className="h-5 w-5 text-emerald-500" />}
           trend={10}
         />
@@ -290,7 +312,11 @@ const FarmDashboard = () => {
       <div className="bg-white rounded-xl shadow-sm p-4 md:p-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Farm Systems</h2>
+            <h2 className="text-lg font-semibold text-gray-800">
+              {user?.role === 'farmer' ? 'Your Farm System' : 
+               user?.role === 'owner' ? 'Your Farm Systems' :
+               'Farm Systems'}
+            </h2>
             <p className="text-sm text-gray-500">Monitor and manage your aquaponics farms</p>
           </div>
           
@@ -336,183 +362,200 @@ const FarmDashboard = () => {
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-2">
-          <button 
-            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === 'all' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
-            onClick={() => setActiveFilter('all')}
-          >
-            All Farms
-          </button>
-          <button 
-            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === 'active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
-            onClick={() => setActiveFilter('active')}
-          >
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-              Active
-            </span>
-          </button>
-          <button 
-            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === 'maintenance' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
-            onClick={() => setActiveFilter('maintenance')}
-          >
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-              Maintenance
-            </span>
-          </button>
-          <button 
-            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === 'inactive' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
-            onClick={() => setActiveFilter('inactive')}
-          >
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-              Inactive
-            </span>
-          </button>
-        </div>
+        {/* Role-based access control for filters */}
+        {user?.role !== 'farmer' && (
+          <div className="flex flex-wrap gap-2">
+            <button 
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === 'all' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+              onClick={() => setActiveFilter('all')}
+            >
+              All Farms
+            </button>
+            <button 
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === 'active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+              onClick={() => setActiveFilter('active')}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                Active
+              </span>
+            </button>
+            <button 
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === 'maintenance' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+              onClick={() => setActiveFilter('maintenance')}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                Maintenance
+              </span>
+            </button>
+            <button 
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${activeFilter === 'inactive' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
+              onClick={() => setActiveFilter('inactive')}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                Inactive
+              </span>
+            </button>
+          </div>
+        )}
       </div>
       
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredFarms.length > 0 ? (
-            filteredFarms.map((farm) => (
-              <Card 
-                key={farm.id} 
-                variant="elevated"
-                className="overflow-hidden group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-                onClick={() => setSelectedFarm(farm)}
-              >
-                <div className="h-48 bg-gray-200 relative overflow-hidden">
-                  <img 
-                    src={farm.image} 
-                    alt={farm.name}
-                    className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="absolute top-3 right-3">
-                    {getStatusBadge(farm.status)}
-                  </div>
-                </div>
-                
-                <CardContent className="space-y-4 relative">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 flex items-center group-hover:text-emerald-600 transition-colors duration-300">
-                      {farm.name}
-                    </h3>
-                    <div className="flex items-center mt-1 text-sm text-gray-500">
-                      <MapPin className="h-3.5 w-3.5 text-emerald-500 mr-1 flex-shrink-0" />
-                      {farm.coordinates}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center text-sm text-gray-700">
-                    <Leaf className="h-4 w-4 text-emerald-500 mr-1.5 flex-shrink-0" />
-                    {farm.type}
-                  </div>
-                  
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-white mr-2 shadow-sm">
-                        <img 
-                          src={farm.farmer.image} 
-                          alt={farm.farmer.name}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <span className="text-sm text-gray-700">{farm.farmer.name}</span>
-                    </div>
-                    
-                    <div className="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
-                      <Clock className="h-3 w-3 mr-1" />
-                      <span>Real-time</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-10">
-              <div className="bg-gray-50 rounded-lg p-8 inline-block mx-auto">
-                <Filter className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">No farms found</h3>
-                <p className="text-gray-500">Try adjusting your search or filters</p>
-                <button 
-                  onClick={() => {setSearchTerm(''); setActiveFilter('all');}}
-                  className="mt-4 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
-                >
-                  Reset filters
-                </button>
-              </div>
-            </div>
-          )}
+      {/* Show farmer view directly if user is a farmer and there's only one farm */}
+      {user?.role === 'farmer' && filteredFarms.length === 1 ? (
+        <div className="text-center py-8">
+          <button
+            onClick={() => setSelectedFarm(filteredFarms[0])}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors"
+          >
+            View Your Farm Dashboard
+          </button>
         </div>
       ) : (
-        <Card variant="default" className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredFarms.length > 0 ? (
-                  filteredFarms.map((farm) => (
-                    <tr 
-                      key={farm.id} 
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => setSelectedFarm(farm)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-md overflow-hidden flex-shrink-0">
-                            <img src={farm.image} alt={farm.name} className="h-full w-full object-cover" />
-                          </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">{farm.name}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{farm.coordinates}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{farm.type}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-full overflow-hidden mr-2">
-                            <img src={farm.farmer.image} alt={farm.farmer.name} className="h-full w-full object-cover" />
-                          </div>
-                          <div className="text-sm text-gray-900">{farm.farmer.name}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+        <>
+          {viewMode === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredFarms.length > 0 ? (
+                filteredFarms.map((farm) => (
+                  <Card 
+                    key={farm.id} 
+                    variant="elevated"
+                    className="overflow-hidden group cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                    onClick={() => setSelectedFarm(farm)}
+                  >
+                    <div className="h-48 bg-gray-200 relative overflow-hidden">
+                      <img 
+                        src={farm.image} 
+                        alt={farm.name}
+                        className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <div className="absolute top-3 right-3">
                         {getStatusBadge(farm.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button className="text-emerald-600 hover:text-emerald-900">View Details</button>
-                      </td>
+                      </div>
+                    </div>
+                    
+                    <CardContent className="space-y-4 relative">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 flex items-center group-hover:text-emerald-600 transition-colors duration-300">
+                          {farm.name}
+                        </h3>
+                        <div className="flex items-center mt-1 text-sm text-gray-500">
+                          <MapPin className="h-3.5 w-3.5 text-emerald-500 mr-1 flex-shrink-0" />
+                          {farm.coordinates}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center text-sm text-gray-700">
+                        <Leaf className="h-4 w-4 text-emerald-500 mr-1.5 flex-shrink-0" />
+                        {farm.type}
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <div className="flex items-center">
+                          <div className="h-8 w-8 rounded-full overflow-hidden ring-2 ring-white mr-2 shadow-sm">
+                            <img 
+                              src={farm.farmer.image} 
+                              alt={farm.farmer.name}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <span className="text-sm text-gray-700">{farm.farmer.name}</span>
+                        </div>
+                        
+                        <div className="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">
+                          <Clock className="h-3 w-3 mr-1" />
+                          <span>Real-time</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-10">
+                  <div className="bg-gray-50 rounded-lg p-8 inline-block mx-auto">
+                    <Filter className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-1">No farms found</h3>
+                    <p className="text-gray-500">Try adjusting your search or filters</p>
+                    <button 
+                      onClick={() => {setSearchTerm(''); setActiveFilter('all');}}
+                      className="mt-4 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                    >
+                      Reset filters
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Card variant="default" className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center">
-                      <Filter className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-500">No farms matching your filters</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredFarms.length > 0 ? (
+                      filteredFarms.map((farm) => (
+                        <tr 
+                          key={farm.id} 
+                          className="hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => setSelectedFarm(farm)}
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 rounded-md overflow-hidden flex-shrink-0">
+                                <img src={farm.image} alt={farm.name} className="h-full w-full object-cover" />
+                              </div>
+                              <div className="ml-3">
+                                <div className="text-sm font-medium text-gray-900">{farm.name}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-500">{farm.coordinates}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{farm.type}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="h-8 w-8 rounded-full overflow-hidden mr-2">
+                                <img src={farm.farmer.image} alt={farm.farmer.name} className="h-full w-full object-cover" />
+                              </div>
+                              <div className="text-sm text-gray-900">{farm.farmer.name}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {getStatusBadge(farm.status)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button className="text-emerald-600 hover:text-emerald-900">View Details</button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center">
+                          <Filter className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-500">No farms matching your filters</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );
@@ -1131,11 +1174,61 @@ const FarmDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 flex items-center">
+                <img 
+                  src="https://cdn-icons-png.flaticon.com/512/4721/4721490.png" 
+                  alt="Aquaponics logo" 
+                  className="h-8 w-auto"
+                />
+                <span className="ml-2 text-xl font-bold text-emerald-600">AquaGrow</span>
+              </div>
+              <div className="ml-6 hidden md:flex space-x-8">
+                <button className="border-emerald-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                  Dashboard
+                </button>
+                <button className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                  Reports
+                </button>
+                <button className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                  Settings
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center">
+              <div className="flex items-center space-x-3">
+                <span className="text-sm text-gray-500">{user?.role && `${user.fullName} (${user.role})`}</span>
+                <div className="relative">
+                  <button 
+                    onClick={handleLogoutClick}
+                    className="ml-4 px-3 py-1.5 border border-transparent rounded-md text-sm font-medium text-gray-500 hover:text-gray-700 flex items-center"
+                  >
+                    <LogOut className="mr-1.5 h-4 w-4" />
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Farm Dashboard</h1>
-            <p className="text-gray-500 mt-1">Monitor and manage your aquaponics systems</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              {user?.role === 'farmer' ? 'Farm Dashboard' : 
+               user?.role === 'owner' ? 'Owner Dashboard' : 
+               'Farm Dashboard'}
+            </h1>
+            <p className="text-gray-500 mt-1">
+              {user?.role === 'farmer' ? 'Monitor and manage your aquaponics system' : 
+               user?.role === 'owner' ? 'Oversee all your farm operations' :
+               'Monitor and manage your aquaponics systems'}
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500">Last synced: Just now</span>
@@ -1150,6 +1243,9 @@ const FarmDashboard = () => {
         
         {selectedFarm ? <FarmDetail farm={selectedFarm} /> : <FarmList />}
       </div>
+      
+      {/* Add the ChatBot component */}
+      <ChatBot />
     </div>
   );
 };

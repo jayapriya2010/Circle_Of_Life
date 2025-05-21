@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiMail, FiLock, FiLogIn, FiChevronRight, FiShield, FiActivity } from 'react-icons/fi';
+import { FiMail, FiLock, FiLogIn, FiChevronRight, FiShield, FiActivity, FiUsers } from 'react-icons/fi';
 
 const Login = ({ onLogin }) => {
     const [email, setEmail] = useState("");
@@ -16,9 +16,21 @@ const Login = ({ onLogin }) => {
         
         try {
             if (typeof onLogin === "function") {
-                const success = onLogin(email, password);
-                if (success) {
-                    navigate("/dashboard");
+                const result = onLogin(email, password);
+                
+                if (result.success) {
+                    // Redirect based on user role
+                    switch (result.user.role) {
+                        case 'admin':
+                            navigate("/admin");
+                            break;
+                        case 'owner':
+                        case 'farmer':
+                            navigate("/dashboard");
+                            break;
+                        default:
+                            navigate("/dashboard");
+                    }
                 } else {
                     setError("Invalid credentials. Please try again.");
                 }
@@ -95,6 +107,12 @@ const Login = ({ onLogin }) => {
                                         </svg>
                                     </div>
                                     <p className="text-white/90 text-sm">Visual analytics dashboard</p>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-lg bg-white/10 backdrop-blur-md shadow-md flex items-center justify-center">
+                                        <FiUsers className="w-5 h-5 text-white" />
+                                    </div>
+                                    <p className="text-white/90 text-sm">Role-based access control</p>
                                 </div>
                             </div>
                         </div>

@@ -1,14 +1,26 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FiMail, FiLock, FiUserPlus, FiChevronRight, FiUser, FiShield } from 'react-icons/fi';
+import { FiMail, FiLock, FiUserPlus, FiChevronRight, FiUser, FiShield, FiUsers } from 'react-icons/fi';
 
 const Signup = ({ onSignup }) => {
+    const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [role, setRole] = useState("farmer");
+    const [farmId, setFarmId] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const navigate = useNavigate();
+
+    // Sample farm options (in a real app, these would come from a database)
+    const farmOptions = [
+        { id: "1", name: "Green Valley Farm" },
+        { id: "2", name: "Blue Water Systems" },
+        { id: "3", name: "Eco Harvest" },
+        { id: "4", name: "Urban Greens" },
+        { id: "5", name: "Coastal Aquatics" }
+    ];
 
     const handleSignup = (event) => {
         event.preventDefault();
@@ -21,10 +33,23 @@ const Signup = ({ onSignup }) => {
             return;
         }
 
+        // For farmer role, farmId is required
+        if (role === "farmer" && !farmId) {
+            setError("Please select a farm for the farmer account");
+            setLoading(false);
+            return;
+        }
+
         try {
             if (typeof onSignup === "function") {
-                onSignup(email, password);
-                navigate("/login");
+                const success = onSignup(email, password, fullName, role, role === "farmer" ? farmId : null);
+                
+                if (success) {
+                    // Redirect to login page after successful signup
+                    navigate("/login");
+                } else {
+                    setError("Failed to create account. Please try again.");
+                }
             } else {
                 console.error("onSignup is not a function");
                 setError("Something went wrong. Please try again later.");
@@ -154,6 +179,8 @@ const Signup = ({ onSignup }) => {
                                         id="name"
                                         type="text"
                                         placeholder="John Smith"
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
                                         required
                                         className="appearance-none block w-full px-3 py-2.5 pl-10 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm"
                                     />
@@ -219,6 +246,67 @@ const Signup = ({ onSignup }) => {
                                     />
                                 </div>
                             </div>
+
+                            {/* User role selection */}
+                            <div className="space-y-1">
+                                <label htmlFor="role" className="block text-xs font-medium text-gray-700">
+                                    Account Type
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <FiUsers className="h-4 w-4 text-gray-400" />
+                                    </div>
+                                    <select
+                                        id="role"
+                                        value={role}
+                                        onChange={(e) => setRole(e.target.value)}
+                                        required
+                                        className="appearance-none block w-full px-3 py-2.5 pl-10 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm pr-10"
+                                    >
+                                        <option value="farmer">Farmer</option>
+                                        <option value="owner">Farm Owner</option>
+                                        <option value="admin">Administrator</option>
+                                    </select>
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <svg className="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Farm selection for farmers */}
+                            {role === "farmer" && (
+                                <div className="space-y-1">
+                                    <label htmlFor="farmId" className="block text-xs font-medium text-gray-700">
+                                        Assign to Farm
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <select
+                                            id="farmId"
+                                            value={farmId}
+                                            onChange={(e) => setFarmId(e.target.value)}
+                                            required={role === "farmer"}
+                                            className="appearance-none block w-full px-3 py-2.5 pl-10 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-sm pr-10"
+                                        >
+                                            <option value="">Select a farm</option>
+                                            {farmOptions.map(farm => (
+                                                <option key={farm.id} value={farm.id}>{farm.name}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                            <svg className="h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             
                             <div className="pt-2">
                                 <button
