@@ -26,6 +26,16 @@ const AdminDashboard = ({ users = [], onLogout }) => {
   const [mockUsers, setMockUsers] = useState([]);
   const navigate = useNavigate();
   
+  // Add state for the add user modal
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    fullName: '',
+    email: '',
+    role: 'farmer',
+    farmId: ''
+  });
+  const [formErrors, setFormErrors] = useState({});
+  
   // Farm data (using same data as in FarmDashboard)
   const farmData = [
     {id: 1, name: "Green Valley Farm", location: "Chennai", status: "active", farmer: "Bob Smith"},
@@ -64,8 +74,86 @@ const AdminDashboard = ({ users = [], onLogout }) => {
     admins: effectiveUsers.filter(user => user.role === 'admin').length
   };
 
+  // Update the handleAddUser to open the modal instead of navigating
   const handleAddUser = () => {
-    navigate('/');
+    setIsAddUserModalOpen(true);
+  };
+  
+  // Handle closing the modal
+  const handleCloseModal = () => {
+    setIsAddUserModalOpen(false);
+    setNewUser({
+      fullName: '',
+      email: '',
+      role: 'farmer',
+      farmId: ''
+    });
+    setFormErrors({});
+  };
+  
+  // Handle input changes for the form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewUser(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear error for this field when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+  
+  // Validate the form
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!newUser.fullName.trim()) {
+      errors.fullName = 'Full name is required';
+    }
+    
+    if (!newUser.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(newUser.email)) {
+      errors.email = 'Email is invalid';
+    }
+    
+    if (newUser.role === 'farmer' && !newUser.farmId) {
+      errors.farmId = 'Farm ID is required for farmers';
+    }
+    
+    return errors;
+  };
+  
+  // Handle form submission
+  const handleSubmitUser = (e) => {
+    e.preventDefault();
+    
+    // Validate form
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    
+    // Add the new user to the mockUsers array
+    const newUserObj = {
+      ...newUser,
+      id: mockUsers.length + 1, // Generate a simple ID
+      farmId: newUser.farmId ? parseInt(newUser.farmId) : undefined
+    };
+    
+    setMockUsers(prev => [...prev, newUserObj]);
+    
+    // Close the modal and reset form
+    handleCloseModal();
+    
+    // Show success message (could use a toast notification library in a real app)
+    alert(`User ${newUser.fullName} created successfully!`);
   };
 
   const getStatusBadge = (status) => {
@@ -483,6 +571,131 @@ const AdminDashboard = ({ users = [], onLogout }) => {
           </div>
         )}
       </div>
+      
+      {/* Add User Modal */}
+      {isAddUserModalOpen && (
+        <div className="fixed z-10 inset-0 overflow-y-auto">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleCloseModal}></div>
+            
+            {/* Modal panel */}
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <UserPlus className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">Add New User</h3>
+                    <div className="mt-4">
+                      <form onSubmit={handleSubmitUser} className="space-y-4">
+                        <div>
+                          <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                            Full Name
+                          </label>
+                          <input
+                            type="text"
+                            name="fullName"
+                            id="fullName"
+                            value={newUser.fullName}
+                            onChange={handleInputChange}
+                            className={`mt-1 block w-full shadow-sm sm:text-sm rounded-md ${
+                              formErrors.fullName ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'
+                            }`}
+                          />
+                          {formErrors.fullName && (
+                            <p className="mt-1 text-sm text-red-600">{formErrors.fullName}</p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                            Email Address
+                          </label>
+                          <input
+                            type="email"
+                            name="email"
+                            id="email"
+                            value={newUser.email}
+                            onChange={handleInputChange}
+                            className={`mt-1 block w-full shadow-sm sm:text-sm rounded-md ${
+                              formErrors.email ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'
+                            }`}
+                          />
+                          {formErrors.email && (
+                            <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                            Role
+                          </label>
+                          <select
+                            id="role"
+                            name="role"
+                            value={newUser.role}
+                            onChange={handleInputChange}
+                            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                          >
+                            <option value="farmer">Farmer</option>
+                            <option value="owner">Farm Owner</option>
+                            <option value="admin">Administrator</option>
+                          </select>
+                        </div>
+                        
+                        {newUser.role === 'farmer' && (
+                          <div>
+                            <label htmlFor="farmId" className="block text-sm font-medium text-gray-700">
+                              Assigned Farm ID
+                            </label>
+                            <select
+                              id="farmId"
+                              name="farmId"
+                              value={newUser.farmId}
+                              onChange={handleInputChange}
+                              className={`mt-1 block w-full shadow-sm sm:text-sm rounded-md ${
+                                formErrors.farmId ? 'border-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-emerald-500 focus:border-emerald-500'
+                              }`}
+                            >
+                              <option value="">Select a Farm</option>
+                              {farmData.map(farm => (
+                                <option key={farm.id} value={farm.id}>
+                                  {farm.name} (ID: {farm.id})
+                                </option>
+                              ))}
+                            </select>
+                            {formErrors.farmId && (
+                              <p className="mt-1 text-sm text-red-600">{formErrors.farmId}</p>
+                            )}
+                          </div>
+                        )}
+                      
+                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                          <button
+                            type="submit"
+                            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-emerald-600 text-base font-medium text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:ml-3 sm:w-auto sm:text-sm"
+                          >
+                            Create User
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCloseModal}
+                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 sm:mt-0 sm:w-auto sm:text-sm"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Add the ChatBot component */}
       <ChatBot />
