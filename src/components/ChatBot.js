@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Loader, AlertCircle, Image, Info, ChevronDown, Zap, Search, Sparkles } from 'lucide-react';
 
 // Replace with the provided API key
-const GEMINI_API_KEY = "AIzaSyDihyQ9fKjAsMbC5E1ZWVgv02461fPJQyk";
+const GEMINI_API_KEY = "api_key";
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 // Using gemini-1.5-flash model as specified in the reference
 const GEMINI_VISION_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
